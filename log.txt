@@ -1,0 +1,68 @@
+
+> project@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.12 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://172.20.10.3:3000
+- Environments: .env.local
+✓ Ready in 634ms
+
+ GET / 200 in 444ms (next.js: 186ms, application-code: 258ms)
+⨯ Error [LibsqlError]: URL_INVALID: The URL 'undefined' is not in a valid format
+    at <unknown> (app\api\uploads\route.ts:4:24)
+  2 | import { createClient } from "@libsql/client";
+  3 |
+> 4 | const db = createClient({
+    |                        ^
+  5 |   url: process.env.TURSO_DATABASE_URL!,
+  6 |   authToken: process.env.TURSO_AUTH_TOKEN!,
+  7 | }); {
+  code: 'URL_INVALID',
+  extendedCode: undefined,
+  rawCode: undefined,
+  page: '/api/uploads'
+}
+ GET /api/uploads 500 in 509ms (next.js: 323ms, application-code: 186ms)
+[browser] ⨯ unhandledRejection: SyntaxError: JSON.parse: unexpected character at line 1 column 1 of the JSON data
+
+ GET / 200 in 66ms (next.js: 8ms, application-code: 58ms)
+⨯ Error [LibsqlError]: URL_INVALID: The URL 'undefined' is not in a valid format
+    at <unknown> (app\api\uploads\route.ts:4:24)
+  2 | import { createClient } from "@libsql/client";
+  3 |
+> 4 | const db = createClient({
+    |                        ^
+  5 |   url: process.env.TURSO_DATABASE_URL!,
+  6 |   authToken: process.env.TURSO_AUTH_TOKEN!,
+  7 | }); {
+  code: 'URL_INVALID',
+  extendedCode: undefined,
+  rawCode: undefined,
+  page: '/api/uploads'
+}
+ GET /api/uploads 500 in 31ms (next.js: 17ms, application-code: 14ms)
+[browser] ⨯ unhandledRejection: SyntaxError: JSON.parse: unexpected character at line 1 column 1 of the JSON data
+
+⨯ Error [LibsqlError]: URL_INVALID: The URL 'undefined' is not in a valid format
+    at <unknown> (app\api\upload\route.ts:5:24)
+    at module evaluation (C:\Users\hp\Desktop\project\.next\dev\server\chunks\[root-of-the-server]__07er-qa._.js:47:30)
+    at Object.<anonymous> (C:\Users\hp\Desktop\project\.next\dev\server\app\api\upload\route.js:8:3)
+  3 | import { createClient } from "@libsql/client";
+  4 |
+> 5 | const db = createClient({
+    |                        ^
+  6 |   url: process.env.TURSO_DATABASE_URL!,
+  7 |   authToken: process.env.TURSO_AUTH_TOKEN!,
+  8 | }); {
+  code: 'URL_INVALID',
+  extendedCode: undefined,
+  rawCode: undefined,
+  page: '/api/upload'
+}
+ POST /api/upload 500 in 204ms (next.js: 195ms, application-code: 9ms)
+[browser] ⨯ unhandledRejection: SyntaxError: JSON.parse: unexpected character at line 1 column 1 of the JSON data
+
+Terminate batch job (Y/N)? [?25h
+
+^CThe system cannot open the device or file specified.

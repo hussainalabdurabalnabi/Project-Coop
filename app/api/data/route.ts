@@ -1,22 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import Database from "better-sqlite3";
-import path from "path";
+import { createClient } from "@libsql/client";
 
-const db = new Database(path.join(process.cwd(), "data.db"));
+const db = createClient({
+  url: process.env.TURSO_DATABASE_URL!,
+  authToken: process.env.TURSO_AUTH_TOKEN!,
+});
 
 export async function GET(req: NextRequest) {
   try {
     const id = req.nextUrl.searchParams.get("id");
 
-    const row = id
-      ? (db.prepare("SELECT * FROM uploads WHERE id = ?").get(id) as any)
-      : (db.prepare("SELECT * FROM uploads ORDER BY id DESC LIMIT 1").get() as any);
+    const result = id
+      ? await db.execute({ sql: "SELECT * FROM uploads WHERE id = ?", args: [id] })
+      : await db.execute("SELECT * FROM uploads ORDER BY id DESC LIMIT 1");
+
+    const row = result.rows[0] as any;
 
     if (!row) {
       return NextResponse.json({ error: "No uploads yet" }, { status: 404 });
     }
 
-    const parsed = JSON.parse(row.data);
+    const parsed = JSON.parse(row.data as string);
 
     return NextResponse.json({
       id: row.id,

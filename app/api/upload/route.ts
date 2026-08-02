@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
-import Database from "better-sqlite3";
-import path from "path";
+import { createClient } from "@libsql/client";
 
-const db = new Database(path.join(process.cwd(), "data.db"));
+const db = createClient({
+  url: process.env.TURSO_DATABASE_URL!,
+  authToken: process.env.TURSO_AUTH_TOKEN!,
+});
 
-db.exec(`
+await db.execute(`
   CREATE TABLE IF NOT EXISTS uploads (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     filename TEXT NOT NULL,
@@ -14,9 +16,6 @@ db.exec(`
   )
 `);
 
-// Scans the raw sheet for repeating "Type" header rows and pulls out
-// each mini-table underneath them (matches the QA regression report
-// format: a "Type" header row, data rows below, ending at "Total").
 function extractBlocks(rawRows: any[][]) {
   const blocks: { headers: string[]; rows: Record<string, any>[] }[] = [];
 
@@ -90,16 +89,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const stmt = db.prepare(
-      "INSERT INTO uploads (filename, uploaded_at, data) VALUES (?, ?, ?)"
-    );
-    const result = stmt.run(
-      file.name,
-      new Date().toISOString(),
-      JSON.stringify({ blocks })
-    );
+    const result = await db.execute({
+      sql: "INSERT INTO uploads (filename, uploaded_at, data) VALUES (?, ?, ?)",
+      args: [file.name, new Date().toISOString(), JSON.stringify({ blocks })],
+    });
 
-    return NextResponse.json({ success: true, id: result.lastInsertRowid });
+    return NextResponse.json({ success: true, id: Number(result.lastInsertRowid) });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Failed to process file" }, { status: 500 });
