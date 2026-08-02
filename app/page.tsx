@@ -92,53 +92,72 @@ export default function Home() {
   }
 }
 
-  return (
-    <main className="p-8 bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex flex-col items-center gap-10">
-      <div className="bg-white shadow-lg rounded-xl p-10 flex flex-col items-center gap-4 w-full max-w-lg">
-        <h1 className="text-3xl font-bold text-indigo-700">Excel Graph Site</h1>
-        <form onSubmit={handleUpload} className="flex flex-col gap-3 items-center">
-          <input type="file" name="file" accept=".xlsx,.xls" className="text-gray-700" />
-          <button
-            type="submit"
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition"
-          >
-            Upload
-          </button>
-        </form>
-        <p className="text-gray-600">{status}</p>
-
-        {uploads.length > 0 && (
-          <div className="flex flex-col gap-1 w-full">
-            <label className="text-sm text-gray-500">Previous uploads</label>
-            <div className="flex gap-2 w-full min-w-0">
-              <select
-                value={selectedId}
-                onChange={handleSelectChange}
-                className="border rounded-lg px-3 py-2 text-gray-700 flex-1 min-w-0"
-              >
-                {uploads.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.filename} — {new Date(u.uploaded_at).toLocaleString()}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={handleDelete}
-              className="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-2 rounded-lg text-sm font-medium transition shrink-0"
-            >
-              Delete
-            </button>
-          </div>
+return (
+    <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-8 flex flex-col items-center gap-10">
+      <div className="w-full max-w-lg">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-slate-900 tracking-tight">
+            Excel Graph Site
+          </h1>
+          <p className="text-slate-500 mt-2">
+            Upload a report and see it visualized instantly
+          </p>
         </div>
-      )}
+
+        <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-8 flex flex-col gap-5">
+          <form onSubmit={handleUpload} className="flex flex-col gap-4 items-center">
+            <input
+              type="file"
+              name="file"
+              accept=".xlsx,.xls"
+              className="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-700 file:font-medium hover:file:bg-indigo-100"
+            />
+            <button
+              type="submit"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium transition shadow-sm"
+            >
+              Upload
+            </button>
+          </form>
+          {status && (
+            <p className="text-sm text-slate-500 text-center">{status}</p>
+          )}
+
+          {uploads.length > 0 && (
+            <div className="flex flex-col gap-1.5 w-full pt-2 border-t border-slate-100">
+              <label className="text-xs font-medium text-slate-400 uppercase tracking-wide">
+                Previous uploads
+              </label>
+              <div className="flex gap-2 w-full min-w-0">
+                <select
+                  value={selectedId}
+                  onChange={handleSelectChange}
+                  className="border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 flex-1 min-w-0 bg-white"
+                >
+                  {uploads.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.filename} — {new Date(u.uploaded_at).toLocaleString()}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleDelete}
+                  className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-lg text-sm font-medium transition shrink-0"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {blocks.length > 0 && (
         <div className="w-full max-w-6xl">
-          <h2 className="text-2xl font-bold text-indigo-700 mb-6">
-            Dashboard: {filename}
+          <h2 className="text-2xl font-bold text-slate-900 mb-6">
+            {filename}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {blocks.map((block, i) => {
               const labelKey = block.headers[0];
               const rows = block.rows.filter(
@@ -151,22 +170,25 @@ export default function Home() {
               );
 
               return (
-                <div key={i} className="bg-white shadow-md rounded-xl p-6">
-                  <h3 className="text-lg font-semibold mb-6 text-gray-800">
+                <div
+                  key={i}
+                  className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6"
+                >
+                  <h3 className="text-sm font-semibold mb-5 text-slate-700 uppercase tracking-wide">
                     Report Block {i + 1}
                   </h3>
                   <ResponsiveContainer width="100%" height={320}>
                     <BarChart data={rows} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                      <XAxis dataKey={labelKey} stroke="#4b5563" />
-                      <YAxis stroke="#4b5563" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey={labelKey} stroke="#94a3b8" fontSize={12} />
+                      <YAxis stroke="#94a3b8" fontSize={12} />
                       <Tooltip
-                        contentStyle={{ backgroundColor: "white", borderRadius: 8, border: "1px solid #e5e7eb" }}
+                        contentStyle={{ backgroundColor: "white", borderRadius: 8, border: "1px solid #e2e8f0" }}
                         wrapperStyle={{ zIndex: 50 }}
                       />
-                      <Legend />
+                      <Legend wrapperStyle={{ fontSize: 12 }} />
                       {numericKeys.map((key, idx) => (
-                        <Bar key={key} dataKey={key} fill={colors[idx % colors.length]} />
+                        <Bar key={key} dataKey={key} fill={colors[idx % colors.length]} radius={[4, 4, 0, 0]} />
                       ))}
                     </BarChart>
                   </ResponsiveContainer>
