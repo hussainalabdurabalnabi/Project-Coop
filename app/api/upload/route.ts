@@ -51,8 +51,18 @@ function extractBlocks(rawRows: any[][]) {
         dataRows.push(entry);
       }
 
-      if (dataRows.length > 0) {
-        blocks.push({ headers, rows: dataRows });
+      // Drop rows that are just a label with no actual data (all other cells blank)
+      const meaningfulRows = dataRows.filter((r) =>
+        headers.slice(1).some((h) => r[h] !== "" && r[h] !== undefined)
+      );
+
+      // Only keep this block if it has real rows AND at least one numeric column
+      const hasNumericData = meaningfulRows.some((r) =>
+        headers.slice(1).some((h) => typeof r[h] === "number")
+      );
+
+      if (meaningfulRows.length > 0 && hasNumericData) {
+        blocks.push({ headers, rows: meaningfulRows });
       }
     }
   }
@@ -129,7 +139,7 @@ export async function POST(req: NextRequest) {
 
     const result = await db.execute({
       sql: "INSERT INTO uploads (filename, uploaded_at, data) VALUES (?, ?, ?)",
-      args: [file.name, new Date().toISOString(), JSON.stringify({ blocks })],
+      args: [file.name, new Date().toISOString(), JSON.stringify({ blocks, rawRows })],
     });
 
     return NextResponse.json({ success: true, id: Number(result.lastInsertRowid) });

@@ -16,6 +16,8 @@ export default function Home() {
   const [filename, setFilename] = useState("");
   const [uploads, setUploads] = useState<UploadSummary[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
+  const [rawRows, setRawRows] = useState<any[][]>([]);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   async function loadUploadsList() {
     const res = await fetch("/api/uploads");
@@ -32,6 +34,7 @@ export default function Home() {
       setBlocks(data.blocks);
       setFilename(data.filename);
       setSelectedId(String(data.id));
+      setRawRows(data.rawRows || []);
     }
   }
 
@@ -153,10 +156,47 @@ return (
       </div>
 
       {blocks.length > 0 && (
-        <div className="w-full max-w-6xl">
-          <h2 className="text-2xl font-bold text-slate-900 mb-6">
-            {filename}
-          </h2>
+  <div className="w-full max-w-6xl">
+    <h2 className="text-2xl font-bold text-slate-900 mb-6">
+      {filename}
+    </h2>
+
+    {rawRows.length > 0 && (
+      <div className="mb-8 bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden">
+        <button
+          onClick={() => setViewerOpen(!viewerOpen)}
+          className="w-full flex items-center justify-between px-6 py-4 text-left"
+        >
+          <span className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
+            View raw sheet data
+          </span>
+          <span className="text-slate-400 text-sm">
+            {viewerOpen ? "Collapse ▲" : "Expand ▼"}
+          </span>
+        </button>
+
+        {viewerOpen && (
+          <div className="overflow-auto max-h-96 border-t border-slate-100">
+            <table className="min-w-full text-sm">
+              <tbody>
+                {rawRows.map((row, ri) => (
+                  <tr key={ri} className={ri % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                    {row.map((cell: any, ci: number) => (
+                      <td
+                        key={ci}
+                        className="px-3 py-1.5 border-b border-r border-slate-200 text-slate-600 whitespace-nowrap"                    
+                        >
+                        {String(cell)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {blocks.map((block, i) => {
               const labelKey = block.headers[0];

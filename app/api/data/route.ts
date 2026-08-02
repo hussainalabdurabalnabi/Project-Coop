@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
       filename: row.filename,
       uploaded_at: row.uploaded_at,
       blocks: parsed.blocks,
+      rawRows: parsed.rawRows ?? [],
     });
   } catch (err) {
     console.error(err);
