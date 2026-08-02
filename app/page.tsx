@@ -76,9 +76,25 @@ export default function Home() {
     loadData(id);
   }
 
+  async function handleDelete() {
+  if (!selectedId) return;
+  if (!confirm("Delete this upload permanently?")) return;
+
+  await fetch(`/api/data?id=${selectedId}`, { method: "DELETE" });
+
+  const list = await loadUploadsList();
+  if (list.length > 0) {
+    loadData(String(list[0].id));
+  } else {
+    setBlocks([]);
+    setFilename("");
+    setSelectedId("");
+  }
+}
+
   return (
     <main className="p-8 bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex flex-col items-center gap-10">
-      <div className="bg-white shadow-lg rounded-xl p-10 flex flex-col items-center gap-4 w-full max-w-md">
+      <div className="bg-white shadow-lg rounded-xl p-10 flex flex-col items-center gap-4 w-full max-w-lg">
         <h1 className="text-3xl font-bold text-indigo-700">Excel Graph Site</h1>
         <form onSubmit={handleUpload} className="flex flex-col gap-3 items-center">
           <input type="file" name="file" accept=".xlsx,.xls" className="text-gray-700" />
@@ -94,19 +110,27 @@ export default function Home() {
         {uploads.length > 0 && (
           <div className="flex flex-col gap-1 w-full">
             <label className="text-sm text-gray-500">Previous uploads</label>
-            <select
-              value={selectedId}
-              onChange={handleSelectChange}
-              className="border rounded-lg px-3 py-2 text-gray-700"
-            >
-              {uploads.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.filename} — {new Date(u.uploaded_at).toLocaleString()}
+            <div className="flex gap-2 w-full min-w-0">
+              <select
+                value={selectedId}
+                onChange={handleSelectChange}
+                className="border rounded-lg px-3 py-2 text-gray-700 flex-1 min-w-0"
+              >
+                {uploads.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.filename} — {new Date(u.uploaded_at).toLocaleString()}
                 </option>
               ))}
             </select>
+            <button
+              onClick={handleDelete}
+              className="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-2 rounded-lg text-sm font-medium transition shrink-0"
+            >
+              Delete
+            </button>
           </div>
-        )}
+        </div>
+      )}
       </div>
 
       {blocks.length > 0 && (

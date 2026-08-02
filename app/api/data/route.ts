@@ -32,4 +32,21 @@ export async function GET(req: NextRequest) {
     console.error(err);
     return NextResponse.json({ error: "Failed to load data" }, { status: 500 });
   }
+
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const id = req.nextUrl.searchParams.get("id");
+    if (!id) {
+      return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    }
+
+    await db.execute({ sql: "DELETE FROM uploads WHERE id = ?", args: [id] });
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
+  }
 }

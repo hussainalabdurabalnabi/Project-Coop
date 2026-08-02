@@ -18,43 +18,42 @@ await db.execute(`
 
 function extractBlocks(rawRows: any[][]) {
   const blocks: { headers: string[]; rows: Record<string, any>[] }[] = [];
+  const anchors = ["Type", "Defect Status"]; // header words that mark the start of a mini-table
 
   for (let i = 0; i < rawRows.length; i++) {
     const row = rawRows[i];
-    const typeColIndex = row.findIndex(
-      (cell) => String(cell).trim() === "Type"
-    );
-    if (typeColIndex === -1) continue;
 
-    const headers: string[] = [];
-    for (let c = typeColIndex; c < row.length; c++) {
-      const val = row[c];
-      if (val === undefined || val === "") break;
-      headers.push(String(val).trim());
-    }
-    if (headers.length < 2) continue;
+    for (let c = 0; c < row.length; c++) {
+      const cell = String(row[c]).trim();
+      if (!anchors.includes(cell)) continue;
 
-    const dataRows: Record<string, any>[] = [];
-    for (let j = i + 1; j < rawRows.length; j++) {
-      const dr = rawRows[j] || [];
-      const label = dr[typeColIndex];
+      const headers: string[] = [];
+      for (let cc = c; cc < row.length; cc++) {
+        const val = row[cc];
+        if (val === undefined || val === "") break;
+        headers.push(String(val).trim());
+      }
+      if (headers.length < 2) continue;
 
-      if (label === undefined || label === "") break;
-      if (String(label).trim() === "Type") break;
+      const dataRows: Record<string, any>[] = [];
+      for (let j = i + 1; j < rawRows.length; j++) {
+        const dr = rawRows[j] || [];
+        const label = dr[c];
 
-      const isTotalRow = /total/i.test(String(label).trim());
+        if (label === undefined || label === "") break;
+        if (anchors.includes(String(label).trim())) break;
+        if (/total/i.test(String(label).trim())) break; // skip totals rows
 
-      if (isTotalRow) break; // stop the table here, don't save this row
-
-      const entry: Record<string, any> = {};
-      headers.forEach((h, k) => {
-        entry[h] = dr[typeColIndex + k] ?? "";
-      });
+        const entry: Record<string, any> = {};
+        headers.forEach((h, k) => {
+          entry[h] = dr[c + k] ?? "";
+        });
         dataRows.push(entry);
-    }
+      }
 
-    if (dataRows.length > 0) {
-      blocks.push({ headers, rows: dataRows });
+      if (dataRows.length > 0) {
+        blocks.push({ headers, rows: dataRows });
+      }
     }
   }
 
@@ -70,10 +69,47 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file received" }, { status: 400 });
     }
 
+    // Basic file type check
+    const validExtensions = [".xlsx", ".xls"];
+    const hasValidExtension = validExtensions.some((ext) =>
+      file.name.toLowerCase().endsWith(ext)
+    );
+    if (!hasValidExtension) {
+      return NextResponse.json(
+        { error: "Please upload an Excel file (.xlsx or .xls)" },
+        { status: 400 }
+      );
+    }
+
+    // Basic size check (10MB limit, generous for a spreadsheet)
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      return NextResponse.json(
+        { error: "File is too large (max 10MB)" },
+        { status: 400 }
+      );
+    }
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const workbook = XLSX.read(buffer, { type: "buffer" });
+    let workbook;
+    try {
+      workbook = XLSX.read(buffer, { type: "buffer" });
+    } catch {
+      return NextResponse.json(
+        { error: "This file couldn't be read — it may be corrupted or not a valid Excel file" },
+        { status: 400 }
+      );
+    }
+
+    if (!workbook.SheetNames.length) {
+      return NextResponse.json(
+        { error: "This Excel file has no sheets" },
+        { status: 400 }
+      );
+    }
+
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
 
