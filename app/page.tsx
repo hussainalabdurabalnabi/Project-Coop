@@ -18,6 +18,8 @@ export default function Home() {
   const [selectedId, setSelectedId] = useState<string>("");
   const [rawRows, setRawRows] = useState<any[][]>([]);
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   async function loadUploadsList() {
     const res = await fetch("/api/uploads");
@@ -44,34 +46,72 @@ export default function Home() {
     });
   }, []);
 
-  async function handleUpload(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const fileInput = form.elements.namedItem("file") as HTMLInputElement;
-    const file = fileInput.files?.[0];
+  function uploadFile(file: File) {
+  setStatus("Uploading...");
+  setUploadProgress(0);
 
-    if (!file) {
-      setStatus("Please choose a file first.");
-      return;
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const xhr = new XMLHttpRequest();
+
+  xhr.upload.addEventListener("progress", (e) => {
+    if (e.lengthComputable) {
+      setUploadProgress(Math.round((e.loaded / e.total) * 100));
     }
+  });
 
-    setStatus("Uploading...");
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const res = await fetch("/api/upload", { method: "POST", body: formData });
-
-    if (res.ok) {
-      const result = await res.json();
+  xhr.onload = async () => {
+    setUploadProgress(null);
+    if (xhr.status >= 200 && xhr.status < 300) {
+      const result = JSON.parse(xhr.responseText);
       setStatus("Upload successful!");
       await loadUploadsList();
       await loadData(String(result.id));
     } else {
-      const data = await res.json();
+      const data = JSON.parse(xhr.responseText);
       setStatus("Error: " + data.error);
     }
+  };
+
+  xhr.onerror = () => {
+    setUploadProgress(null);
+    setStatus("Upload failed — check your connection");
+  };
+
+  xhr.open("POST", "/api/upload");
+  xhr.send(formData);
+}
+
+function handleUpload(e: React.FormEvent<HTMLFormElement>) {
+  e.preventDefault();
+  const form = e.currentTarget;
+  const fileInput = form.elements.namedItem("file") as HTMLInputElement;
+  const file = fileInput.files?.[0];
+
+  if (!file) {
+    setStatus("Please choose a file first.");
+    return;
   }
+
+  uploadFile(file);
+}
+
+function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+  e.preventDefault();
+  setIsDragging(false);
+  const file = e.dataTransfer.files?.[0];
+  if (file) uploadFile(file);
+}
+
+function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
+  e.preventDefault();
+  setIsDragging(true);
+}
+
+function handleDragLeave() {
+  setIsDragging(false);
+}
 
   function handleSelectChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const id = e.target.value;
@@ -108,23 +148,47 @@ return (
         </div>
 
         <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-8 flex flex-col gap-5">
-          <form onSubmit={handleUpload} className="flex flex-col gap-4 items-center">
-            <input
-              type="file"
-              name="file"
-              accept=".xlsx,.xls"
-              className="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-700 file:font-medium hover:file:bg-indigo-100"
-            />
-            <button
-              type="submit"
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium transition shadow-sm"
-            >
-              Upload
-            </button>
-          </form>
-          {status && (
-            <p className="text-sm text-slate-500 text-center">{status}</p>
-          )}
+          <div
+  onDrop={handleDrop}
+  onDragOver={handleDragOver}
+  onDragLeave={handleDragLeave}
+  className={`w-full border-2 border-dashed rounded-xl p-8 flex flex-col items-center gap-3 transition-colors ${
+    isDragging
+      ? "border-indigo-400 bg-indigo-50"
+      : "border-slate-200 bg-slate-50"
+  }`}
+>
+  <p className="text-sm text-slate-500 text-center">
+    Drag and drop an Excel file here, or
+  </p>
+  <form onSubmit={handleUpload} className="flex flex-col gap-3 items-center w-full">
+    <input
+      type="file"
+      name="file"
+      accept=".xlsx,.xls"
+      className="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-700 file:font-medium hover:file:bg-indigo-100"
+    />
+    <button
+      type="submit"
+      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium transition shadow-sm"
+    >
+      Upload
+    </button>
+  </form>
+</div>
+
+{uploadProgress !== null && (
+  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+    <div
+      className="bg-indigo-600 h-full transition-all"
+      style={{ width: `${uploadProgress}%` }}
+    />
+  </div>
+)}
+
+{status && (
+  <p className="text-sm text-slate-500 text-center">{status}</p>
+)}
 
           {uploads.length > 0 && (
             <div className="flex flex-col gap-1.5 w-full pt-2 border-t border-slate-100">
