@@ -42,13 +42,15 @@ function extractBlocks(rawRows: any[][]) {
       if (label === undefined || label === "") break;
       if (String(label).trim() === "Type") break;
 
+      const isTotalRow = /total/i.test(String(label).trim());
+
+      if (isTotalRow) break; // stop the table here, don't save this row
+
       const entry: Record<string, any> = {};
       headers.forEach((h, k) => {
         entry[h] = dr[typeColIndex + k] ?? "";
       });
-      dataRows.push(entry);
-
-      if (String(label).trim().toLowerCase() === "total") break;
+        dataRows.push(entry);
     }
 
     if (dataRows.length > 0) {
