@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -21,6 +22,10 @@ export default function Home() {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
 
   async function loadUploadsList() {
     const res = await fetch("/api/uploads");
@@ -40,6 +45,40 @@ export default function Home() {
       setRawRows(data.rawRows || []);
     }
   }
+  async function sendChatMessage() {
+  const message = chatInput.trim();
+  if (!message) return;
+
+  setChatMessages((prev) => [...prev, { role: "user", text: message }]);
+  setChatInput("");
+  setChatLoading(true);
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, blocks, filename }),
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      setChatMessages((prev) => [...prev, { role: "assistant", text: "Sorry, something went wrong." }]);
+    } else {
+      setChatMessages((prev) => [...prev, { role: "assistant", text: data.reply }]);
+    }
+  } catch {
+    setChatMessages((prev) => [...prev, { role: "assistant", text: "Sorry, something went wrong." }]);
+  } finally {
+    setChatLoading(false);
+  }
+}
+
+function handleChatKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    sendChatMessage();
+  }
+}
 
   useEffect(() => {
     loadUploadsList().then((list) => {
@@ -135,10 +174,9 @@ function handleDragLeave() {
     setSelectedId("");
   }
 }
-
-return (
-    <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-8 flex flex-col items-center gap-10">
-      <div className="w-full max-w-lg">
+ return (
+    <>
+      <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-8 flex flex-col items-center gap-10"><div className="w-full max-w-lg">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-slate-900 tracking-tight">
             Excel Graph Site
@@ -372,5 +410,71 @@ return (
         </div>
       )}
     </main>
+
+    <button
+      onClick={() => setChatOpen(!chatOpen)}
+      className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg flex items-center justify-center text-2xl transition z-50"
+    >
+      {chatOpen ? "✕" : "💬"}
+    </button>
+
+    {chatOpen && (
+      <div className="fixed bottom-24 right-6 w-80 h-96 bg-white border border-slate-200 shadow-xl rounded-2xl flex flex-col overflow-hidden z-50">
+        <div className="bg-indigo-600 text-white px-4 py-3 text-sm font-semibold">
+          Report Assistant
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
+          {chatMessages.length === 0 && (
+            <p className="text-xs text-slate-400 text-center mt-4">
+              Ask me anything about the loaded report.
+            </p>
+          )}
+          {chatMessages.map((m, i) => (
+            <div
+              key={i}
+              className={`text-sm px-3 py-2 rounded-lg max-w-[85%] ${
+                m.role === "user"
+                  ? "bg-indigo-600 text-white self-end"
+                  : "bg-slate-100 text-slate-700 self-start"
+              }`}
+            >
+              <div
+  key={i}
+  className={`text-sm px-3 py-2 rounded-lg max-w-[85%] prose prose-sm ${
+    m.role === "user"
+      ? "bg-indigo-600 text-white self-end prose-invert"
+      : "bg-slate-100 text-slate-700 self-start"
+  }`}
+>
+  <ReactMarkdown>{m.text}</ReactMarkdown>
+</div>
+            </div>
+          ))}
+          {chatLoading && (
+            <div className="text-sm px-3 py-2 rounded-lg bg-slate-100 text-slate-400 self-start">
+              Thinking...
+            </div>
+          )}
+        </div>
+
+        <div className="flex border-t border-slate-100">
+          <input
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            onKeyDown={handleChatKeyDown}
+            placeholder="Ask a question..."
+            className="flex-1 px-3 py-2 text-sm outline-none"
+          />
+          <button
+            onClick={sendChatMessage}
+            className="px-4 text-indigo-600 font-medium text-sm"
+          >
+            Send
+          </button>
+        </div>
+      </div>
+    )}
+  </>
   );
 }
