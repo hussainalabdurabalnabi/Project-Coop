@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 
 type Block = { headers: string[]; rows: Record<string, any>[] };
@@ -273,6 +274,19 @@ return (
                 (h) => h !== labelKey && typeof rows[0][h] === "number"
               );
 
+              // Look for a "percent" style column (e.g. "Pass %") for a trend line
+              const percentKey = numericKeys.find((h) => h.toLowerCase().includes("%"));
+
+              // Build totals across all rows for a composition pie chart
+              // (skip the percent column itself, that's not something you sum)
+              const pieKeys = numericKeys.filter((h) => h !== percentKey);
+              const pieData = pieKeys
+                .map((h) => ({
+                  name: h,
+                  value: rows.reduce((sum, r) => sum + (Number(r[h]) || 0), 0),
+                }))
+                .filter((d) => d.value > 0);
+
               return (
                 <div
                   key={i}
@@ -296,6 +310,61 @@ return (
                       ))}
                     </BarChart>
                   </ResponsiveContainer>
+
+                  {pieData.length > 0 && (
+                    <>
+                      <h4 className="text-xs font-semibold mt-6 mb-3 text-slate-500 uppercase tracking-wide">
+                        Overall breakdown
+                      </h4>
+                      <ResponsiveContainer width="100%" height={260}>
+                        <PieChart>
+                          <Pie
+                            data={pieData}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={90}
+                            label={({ name, percent }) =>
+                              `${name} ${((percent ?? 0) * 100).toFixed(0)}%`
+                            }
+                          >
+                            {pieData.map((_, idx) => (
+                              <Cell key={idx} fill={colors[idx % colors.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            contentStyle={{ backgroundColor: "white", borderRadius: 8, border: "1px solid #e2e8f0" }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </>
+                  )}
+
+                  {percentKey && rows.length > 1 && (
+                    <>
+                      <h4 className="text-xs font-semibold mt-6 mb-3 text-slate-500 uppercase tracking-wide">
+                        {percentKey} trend
+                      </h4>
+                      <ResponsiveContainer width="100%" height={220}>
+                        <LineChart data={rows} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                          <XAxis dataKey={labelKey} stroke="#94a3b8" fontSize={11} />
+                          <YAxis stroke="#94a3b8" fontSize={12} />
+                          <Tooltip
+                            contentStyle={{ backgroundColor: "white", borderRadius: 8, border: "1px solid #e2e8f0" }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey={percentKey}
+                            stroke={colors[0]}
+                            strokeWidth={2}
+                            dot={{ r: 4 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </>
+                  )}
                 </div>
               );
             })}
