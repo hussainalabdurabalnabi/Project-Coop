@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@libsql/client";
+import { auth } from "@/auth";
 
 const db = createClient({
   url: process.env.TURSO_DATABASE_URL!,
@@ -8,11 +9,22 @@ const db = createClient({
 
 export async function GET(req: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    }
+
     const id = req.nextUrl.searchParams.get("id");
 
     const result = id
-      ? await db.execute({ sql: "SELECT * FROM uploads WHERE id = ?", args: [id] })
-      : await db.execute("SELECT * FROM uploads ORDER BY id DESC LIMIT 1");
+      ? await db.execute({
+          sql: "SELECT * FROM uploads WHERE id = ? AND user_email = ?",
+          args: [id, session.user.email],
+        })
+      : await db.execute({
+          sql: "SELECT * FROM uploads WHERE user_email = ? ORDER BY id DESC LIMIT 1",
+          args: [session.user.email],
+        });
 
     const row = result.rows[0] as any;
 
@@ -33,17 +45,24 @@ export async function GET(req: NextRequest) {
     console.error(err);
     return NextResponse.json({ error: "Failed to load data" }, { status: 500 });
   }
-
 }
 
 export async function DELETE(req: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    }
+
     const id = req.nextUrl.searchParams.get("id");
     if (!id) {
       return NextResponse.json({ error: "Missing id" }, { status: 400 });
     }
 
-    await db.execute({ sql: "DELETE FROM uploads WHERE id = ?", args: [id] });
+    await db.execute({
+      sql: "DELETE FROM uploads WHERE id = ? AND user_email = ?",
+      args: [id, session.user.email],
+    });
 
     return NextResponse.json({ success: true });
   } catch (err) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { createClient } from "@libsql/client";
+import { auth } from "@/auth";
 
 const db = createClient({
   url: process.env.TURSO_DATABASE_URL!,
@@ -12,7 +13,23 @@ await db.execute(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     filename TEXT NOT NULL,
     uploaded_at TEXT NOT NULL,
-    data TEXT NOT NULL
+    data TEXT NOT NULL,
+    user_email TEXT
+  )
+`);
+
+try {
+  await db.execute(`ALTER TABLE uploads ADD COLUMN user_email TEXT`);
+} catch {
+  // already exists, ignore
+}
+
+await db.execute(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL
   )
 `);
 
@@ -72,6 +89,11 @@ function extractBlocks(rawRows: any[][]) {
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    }
+
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
 
@@ -138,8 +160,8 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await db.execute({
-      sql: "INSERT INTO uploads (filename, uploaded_at, data) VALUES (?, ?, ?)",
-      args: [file.name, new Date().toISOString(), JSON.stringify({ blocks, rawRows })],
+      sql: "INSERT INTO uploads (filename, uploaded_at, data, user_email) VALUES (?, ?, ?, ?)",
+      args: [file.name, new Date().toISOString(), JSON.stringify({ blocks, rawRows }), session.user.email],
     });
 
     return NextResponse.json({ success: true, id: Number(result.lastInsertRowid) });

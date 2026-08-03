@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@libsql/client";
+import { auth } from "@/auth";
 
 const db = createClient({
   url: process.env.TURSO_DATABASE_URL!,
@@ -8,9 +9,15 @@ const db = createClient({
 
 export async function GET() {
   try {
-    const result = await db.execute(
-      "SELECT id, filename, uploaded_at FROM uploads ORDER BY id DESC"
-    );
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    }
+
+    const result = await db.execute({
+      sql: "SELECT id, filename, uploaded_at FROM uploads WHERE user_email = ? ORDER BY id DESC",
+      args: [session.user.email],
+    });
 
     return NextResponse.json({ uploads: result.rows });
   } catch (err) {
