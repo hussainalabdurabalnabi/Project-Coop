@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import Link from "next/link";
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -184,6 +185,11 @@ function handleDragLeave() {
           <p className="text-slate-500 mt-2">
             Upload a report and see it visualized instantly
           </p>
+          <Link
+            href="/download" className="text-indigo-600 hover:underline text-sm mt-2 inline-block"
+            >
+            Get the Android app
+          </Link>
         </div>
 
         <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-8 flex flex-col gap-5">
