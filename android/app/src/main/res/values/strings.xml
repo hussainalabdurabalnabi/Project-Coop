@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Excel Graph Site</string>
+    <string name="title_activity_main">Excel Graph Site</string>
+    <string name="package_name">com.hussain.excelgraphsite</string>
+    <string name="custom_url_scheme">com.hussain.excelgraphsite</string>
+</resources>
