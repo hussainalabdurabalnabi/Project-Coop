@@ -7,6 +7,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Excel Graph Site",
   description: "Upload Excel reports and view them as visual dashboards",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
